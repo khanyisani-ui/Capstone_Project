@@ -1,0 +1,8 @@
+<h1>Your Events</h1>
+<ul>
+    {% for event in events %}
+        <li>{{ event.title }} - <a href="{% url 'events:event_update' event.id %}">Update</a> | <a href="{% url 'events:event_delete' event.id %}">Delete</a></li>
+    {% endfor %}
+</ul>
+<a href="{% url 'events:event_form' %}">Create New Event</a>
+

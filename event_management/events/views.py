@@ -1,4 +1,3 @@
-# events/views.py
 from django.shortcuts import render
 from rest_framework import status, viewsets, generics
 from rest_framework.permissions import IsAuthenticated

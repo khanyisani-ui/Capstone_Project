@@ -1,83 +1,107 @@
-from django.shortcuts import render
-from rest_framework import status, viewsets, generics
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import viewsets, permissions
 from rest_framework.response import Response
-from .models import Event, Notification, Participant
-from .serializers import EventSerializer, ParticipantSerializer, NotificationSerializer, UserSerializer
 from rest_framework.decorators import action
+from .models import Event, Participant, Notification
+from .serializers import EventSerializer, ParticipantSerializer, NotificationSerializer
 from django.contrib.auth.models import User
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
+from .permissions import IsAdminOrOrganizer
 
-class UserCreateView(generics.CreateAPIView):
-    """
-    Handle user registration and account creation.
-    """
-    serializer_class = UserSerializer
 
-    def post(self, request, *args, **kwargs):
-        """
-        Override the post method to handle user creation.
-        """
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+# User Registration
+class RegisterView(APIView):
+    permission_classes = [permissions.AllowAny]
 
+    def post(self, request):
+        data = request.data
+        user = User.objects.create_user(username=data['username'], email=data['email'], password=data['password'])
+        return Response({
+            "id": user.id,
+            "username": user.username,
+            "email": user.email
+        }, status=201)
+
+
+# User Login (JWT)
+class LoginView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        data = request.data
+        user = User.objects.get(username=data['username'])
+        if user.check_password(data['password']):
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                "access": str(refresh.access_token),
+                "refresh": str(refresh)
+            }, status=200)
+        return Response({"detail": "Invalid credentials"}, status=400)
+
+
+# Event Management
 class EventViewSet(viewsets.ModelViewSet):
-    """
-    Handle CRUD operations for events.
-    """
     queryset = Event.objects.all()
     serializer_class = EventSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        """
-        Return events filtered by the logged-in user's username as the organizer.
-        """
-        return Event.objects.filter(organizer=self.request.user.username)
+    permission_classes = [IsAuthenticated, IsAdminOrOrganizer]
 
     def perform_create(self, serializer):
-        """
-        Override the perform_create method to automatically set the organizer.
-        """
         serializer.save(organizer=self.request.user.username)
 
-    @action(detail=True, methods=['post'])
-    def register(self, request, pk=None):
-        """
-        Register a user for an event.
-        """
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def add_participant(self, request, pk=None):
         event = self.get_object()
         if event.is_full():
-            return Response({"detail": "Event is full."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Event is full"}, status=400)
+        
         participant = Participant.objects.create(user=request.user, event=event)
-        return Response(ParticipantSerializer(participant).data, status=status.HTTP_201_CREATED)
+        return Response(ParticipantSerializer(participant).data, status=201)
 
-    @action(detail=True, methods=['post'])
-    def unregister(self, request, pk=None):
-        """
-        Unregister a user from an event.
-        """
-        event = self.get_object()
-        participant = Participant.objects.filter(user=request.user, event=event).first()
-        if participant:
-            participant.delete()
-            return Response({"detail": "Successfully unregistered."}, status=status.HTTP_204_NO_CONTENT)
-        return Response({"detail": "Not registered for this event."}, status=status.HTTP_400_BAD_REQUEST)
 
+# Participant Management
 class ParticipantViewSet(viewsets.ModelViewSet):
-    """
-    Handle CRUD operations for participants.
-    """
     queryset = Participant.objects.all()
     serializer_class = ParticipantSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_queryset(self):
+        event_id = self.request.query_params.get('event_id')
+        if event_id:
+            return Participant.objects.filter(event_id=event_id)
+        return Participant.objects.all()
+
+
+# Notification System
 class NotificationViewSet(viewsets.ModelViewSet):
-    """
-    Handle CRUD operations for event notifications.
-    """
     queryset = Notification.objects.all()
     serializer_class = NotificationSerializer
     permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def send_notification(self, request, pk=None):
+        event = Event.objects.get(id=pk)
+        message = request.data.get("message")
+        notification = Notification.objects.create(user=request.user, event=event, message=message)
+        return Response(NotificationSerializer(notification).data, status=201)
+
+
+# Search Events
+class EventSearchView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        events = Event.objects.all()
+        date = request.query_params.get('date')
+        location = request.query_params.get('location')
+
+        if date:
+            events = events.filter(start_date__date=date)
+        if location:
+            events = events.filter(location__icontains=location)
+
+        serializer = EventSerializer(events, many=True)
+        return Response(serializer.data)

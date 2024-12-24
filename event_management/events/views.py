@@ -44,19 +44,24 @@ class LoginView(APIView):
 class EventViewSet(viewsets.ModelViewSet):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
-    permission_classes = [IsAuthenticated, IsAdminOrOrganizer]
+    permission_classes = [permissions.IsAuthenticated]
 
-    def perform_create(self, serializer):
-        serializer.save(organizer=self.request.user.username)
-
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def add_participant(self, request, pk=None):
         event = self.get_object()
-        if event.is_full():
-            return Response({"detail": "Event is full"}, status=400)
-        
-        participant = Participant.objects.create(user=request.user, event=event)
-        return Response(ParticipantSerializer(participant).data, status=201)
+        user = request.user
+
+        # Check if the user is already registered for the event
+        if Participant.objects.filter(event=event, user=user).exists():
+            return Response({'status': 'User is already registered for this event.'})
+
+        # Check if the event is full
+        if event.participants.count() >= event.capacity:
+            return Response({'status': 'Event is full.'}, status=400)
+
+        # Create a new participant
+        participant = Participant.objects.create(user=user, event=event)
+        return Response({'status': 'Participant added.', 'participant': ParticipantSerializer(participant).data})
 
 
 # Participant Management

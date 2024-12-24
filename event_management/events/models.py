@@ -20,7 +20,7 @@ class Event(models.Model):
 
 class Participant(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    event = models.ForeignKey(Event, on_delete=models.CASCADE)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='participants')
 
     def __str__(self):
         return f"{self.user.username} - {self.event.title}"

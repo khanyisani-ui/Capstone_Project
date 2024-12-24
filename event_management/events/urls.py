@@ -13,4 +13,5 @@ urlpatterns = [
     path('auth/login/', LoginView.as_view(), name='login'),
     path('search/', EventSearchView.as_view(), name='search-events'),
     path('', include(router.urls)),
+    path('auth/', include('rest_framework.urls')),
 ]

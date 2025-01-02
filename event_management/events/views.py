@@ -62,7 +62,22 @@ class EventViewSet(viewsets.ModelViewSet):
         # Create a new participant
         participant = Participant.objects.create(user=user, event=event)
         return Response({'status': 'Participant added.', 'participant': ParticipantSerializer(participant).data})
-
+    
+    # List Participants
+    @action(detail=True, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def list_participants(self, request, pk=None):
+        event = self.get_object()
+        participants = Participant.objects.filter(event=event)
+        serializer = ParticipantSerializer(participants, many=True)
+        return Response(serializer.data)
+    
+    # Send Notification
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def send_notification(self, request, pk=None):
+        event = Event.objects.get(id=pk)
+        message = request.data.get("message")
+        notification = Notification.objects.create(user=request.user, event=event, message=message)
+        return Response(NotificationSerializer(notification).data, status=201)
 
 # Participant Management
 class ParticipantViewSet(viewsets.ModelViewSet):
@@ -86,12 +101,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
-    def send_notification(self, request, pk=None):
-        event = Event.objects.get(id=pk)
-        message = request.data.get("message")
-        notification = Notification.objects.create(user=request.user, event=event, message=message)
-        return Response(NotificationSerializer(notification).data, status=201)
+    
 
 
 # Search Events

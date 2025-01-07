@@ -1,0 +1,16 @@
+{% extends 'events/base.html' %}
+{% block title %}Landing Page{% endblock %}
+{% block content %}
+<div class="jumbotron text-center">
+    <h1 class="display-4">Welcome to Our Event Management Project!</h1>
+
+    <p class="lead">Discover the ultimate platform designed to streamline and elevate your event planning experience. Whether you're organizing a small gathering or a grand celebration, our comprehensive tools and features ensure that every detail is perfectly managed.</p>
+    
+    <hr class="my-4"> 
+    
+    <p>Experience the convenience of seamless event registration, real-time participant tracking, and efficient notification systems. Our user-friendly interface and customizable options allow you to tailor each event to your specific needs. Join us and explore event management at its best.</p>
+
+    <a class="btn btn-primary btn-lg btn-animate" href="{% url 'login' %}" role="button">Login</a>
+    <a class="btn btn-secondary btn-lg btn-animate" href="{% url 'register' %}" role="button">Register</a>
+</div>
+{% endblock %}

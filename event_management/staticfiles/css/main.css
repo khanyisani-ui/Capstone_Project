@@ -1,0 +1,58 @@
+/* main.css */
+
+body {
+    background-color: #2a2a2a;
+    color: #ffffff;
+}
+
+.navbar {
+    margin-bottom: 20px;
+}
+
+.jumbotron {
+    background-color: #343a40;
+    color: #ffffff;
+    padding: 2rem 1rem;
+}
+
+/* Centering buttons */
+.jumbotron {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.jumbotron .btn {
+    margin: 10px;
+}
+
+.btn-animate {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.btn-animate::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+    opacity: 0;
+}
+
+.btn-animate:hover::after {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+/* Additional custom styles */
+.container {
+    padding: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}

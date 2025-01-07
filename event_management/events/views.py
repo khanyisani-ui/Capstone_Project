@@ -8,6 +8,8 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from .permissions import IsAdminOrOrganizer
+from django.shortcuts import render
+
 
 
 # User Registration
@@ -120,3 +122,14 @@ class EventSearchView(APIView):
 
         serializer = EventSerializer(events, many=True)
         return Response(serializer.data)
+    
+
+# Template Views
+def landing(request):
+    return render(request, 'events/landing.html')
+
+def login(request):
+    return render(request, 'events/login.html')
+
+def dashboard(request):
+    return render(request, 'events/dashboard.html')
